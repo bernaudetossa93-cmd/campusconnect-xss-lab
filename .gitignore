@@ -1,0 +1,16 @@
+# Données locales et secrets
+.env
+.env.*
+!.env.example
+config.local.php
+*.log
+
+# Fichiers temporaires et sauvegardes
+*.bak
+*.tmp
+~$*
+
+# Fichiers propres au système
+.DS_Store
+Thumbs.db
+desktop.ini
