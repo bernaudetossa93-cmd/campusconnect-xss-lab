@@ -5,6 +5,10 @@ Ce dépôt contient deux versions d’une petite application PHP/MySQL utilisée
 - `version-vulnerable/` : exemples volontairement vulnérables ;
 - `version-corrigee/` : protections appliquées aux mêmes fonctionnalités.
 
+## Guide de prise en main
+
+Consulte [`Guide-CampusConnect.html`](Guide-CampusConnect.html) pour les étapes d'installation dans XAMPP, les adresses locales et les essais guidés des scénarios réfléchi, stocké et DOM. Ouvre ce fichier dans un navigateur; il reste séparé des pages de l'application.
+
 ## Utilisation locale uniquement
 
 La version vulnérable sert uniquement à un laboratoire local avec des données fictives. Ne déploie pas ce projet sur un hébergement public ni sur un serveur accessible depuis Internet. Les deux dossiers Apache contiennent une règle `Require local` pour limiter l’accès à l’ordinateur local.

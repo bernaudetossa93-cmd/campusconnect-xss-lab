@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide CampusConnect</title>
+<style>
+:root{color-scheme:light;--ink:#24313a;--muted:#586873;--blue:#176b7b;--line:#dbe3e7;--paper:#fff;--wash:#f3f6f7;--warn:#fff4e7}
+*{box-sizing:border-box}body{margin:0;background:var(--wash);color:var(--ink);font:16px/1.65 Arial,Helvetica,sans-serif}.page{max-width:900px;margin:32px auto;background:var(--paper);padding:48px 58px;box-shadow:0 8px 30px #1a374012}h1,h2,h3{line-height:1.25;color:#18252d}h1{font-size:34px;margin:0 0 8px}h2{font-size:23px;margin:36px 0 12px;border-bottom:1px solid var(--line);padding-bottom:8px}h3{font-size:18px;margin:24px 0 8px}.lead{font-size:18px;color:var(--muted);margin:0 0 28px}.notice{background:var(--warn);border-left:4px solid #bd7229;padding:13px 16px;margin:20px 0}code,pre{font-family:Consolas,"Courier New",monospace}code{background:#edf1f3;padding:2px 5px;border-radius:3px;overflow-wrap:anywhere}pre{background:#f1f4f5;padding:14px 16px;white-space:pre-wrap;overflow-wrap:anywhere;border-radius:5px}ul,ol{padding-left:24px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.box{border:1px solid var(--line);border-radius:6px;padding:16px}.box h3{margin-top:0}.small{font-size:14px;color:var(--muted)}.path{font-family:Consolas,"Courier New",monospace;overflow-wrap:anywhere}.footer{margin-top:38px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}
+@media(max-width:650px){.page{margin:0;padding:28px 20px}.grid{grid-template-columns:1fr}h1{font-size:29px}}
+@media print{body{background:white;font-size:11pt}.page{max-width:none;margin:0;padding:0;box-shadow:none}h2{break-after:avoid}.box,pre,.notice{break-inside:avoid}a{color:inherit;text-decoration:none}}
+</style>
+</head>
+<body><main class="page">
+<h1>CampusConnect</h1>
+<p class="lead">Repères pour installer les deux versions et comprendre les trois scénarios XSS.</p>
+<div class="notice"><strong>Usage local uniquement.</strong> La version vulnérable est réservée à votre ordinateur. Gardez-la sur <code>localhost</code> et ne la publiez pas sur un réseau ou un hébergement. Les démonstrations ci-dessous ne font qu'afficher une boîte de dialogue.</div>
+<h2>1. Les deux dossiers</h2>
+<div class="grid">
+<section class="box"><h3>Version vulnérable</h3><p><span class="path">version-vulnerable</span> affiche volontairement certaines valeurs sans encodage HTML. Les pages permettent de reproduire les cas réfléchi, stocké et DOM.</p><p>Dans cette copie, les points dangereux sont dans <code>recherche.php</code>, <code>index.php</code>, <code>commentaires.php</code> et <code>script.js</code>.</p></section>
+<section class="box"><h3>Version corrigée</h3><p><span class="path">version-corrigee</span> garde les mêmes pages et les mêmes fonctions. Les données utilisateur sont encodées avant affichage, et le JavaScript utilise <code>textContent</code>.</p><p>Les corrections sont visibles dans les fichiers portant les mêmes noms.</p></section>
+</div>
+<h2>2. Installation dans XAMPP</h2>
+<ol>
+<li>Placez le dossier du projet dans <code>C:\xampp\htdocs\campusconnect-xss\</code> (ou dans le dossier <code>htdocs</code> de votre installation XAMPP).</li>
+<li>Démarrez Apache et MySQL dans le panneau XAMPP. Vérifiez le port MySQL dans <code>config.php</code> de chaque version : ce dépôt utilise <code>3308</code> par défaut, tandis que beaucoup d'installations utilisent <code>3306</code>.</li>
+<li>Dans phpMyAdmin, importez une fois le fichier <code>database.sql</code> depuis l'un des deux dossiers. Les deux versions utilisent la base <code>campusconnect</code>.</li>
+<li>Si nécessaire, adaptez les paramètres PDO dans <code>config.php</code> des deux versions selon votre installation XAMPP.</li>
+</ol>
+<p>Adresses locales si le dossier parent s'appelle <code>campusconnect-xss</code> :</p>
+<pre>http://localhost/campusconnect-xss/version-vulnerable/
+http://localhost/campusconnect-xss/version-corrigee/</pre>
+<p class="small">Chaque dossier contient un fichier <code>.htaccess</code> qui désactive l'indexation des fichiers et limite l'accès aux connexions locales avec Apache 2.4.</p>
+<h2>3. Exemple inoffensif à utiliser</h2>
+<p>Cette chaîne ne lit et n'envoie aucune donnée. Elle sert seulement à voir si un navigateur interprète du HTML saisi.</p>
+<pre>&lt;img src=x onerror="alert('CampusConnect local')"&gt;</pre>
+<h2>4. XSS réfléchi</h2>
+<p>Le formulaire de recherche envoie <code>q</code> par GET. PHP reprend le terme dans la phrase de résultats de <code>recherche.php</code>. Dans la version vulnérable, la valeur est écrite directement dans le HTML. Dans la version corrigée, elle passe par <code>e($terme)</code>, qui utilise <code>htmlspecialchars</code>.</p>
+<h3>Essai et résultat</h3><ol><li>Ouvrez la recherche de la version vulnérable et collez l'exemple ci-dessus.</li><li>Une boîte de dialogue apparaît dans la réponse de recherche.</li><li>Refaites la recherche dans la version corrigée : le code est affiché comme texte et aucune boîte n'apparaît.</li></ol>
+<p>Les requêtes PDO de recherche sont préparées dans les deux copies. Elles protègent les paramètres SQL, mais la protection XSS vient de l'encodage de sortie.</p>
+<h2>5. XSS stocké</h2>
+<p>Le formulaire de publication enregistre le message dans MySQL. Le fil récupère ensuite le texte. Dans la version vulnérable, <code>index.php</code> l'insère sans encodage; <code>commentaires.php</code> fait de même pour les commentaires. Dans la version corrigée, ces valeurs passent par <code>e()</code>.</p>
+<h3>Essai et résultat</h3><ol><li>Dans la version vulnérable, publiez l'exemple inoffensif. Rechargez le fil : la boîte s'ouvre à chaque affichage vulnérable de cette publication.</li><li>Créez aussi un commentaire de démonstration pour voir le même cycle sur la page des commentaires.</li><li>Dans la version corrigée, le contenu est montré comme du texte.</li><li>Supprimez les publications et commentaires depuis leurs pages. Pour tout réinitialiser, réimportez <code>database.sql</code>.</li></ol>
+<p>Le contenu stocké peut affecter les personnes qui consultent la page vulnérable, pas uniquement la personne qui l'a saisi.</p>
+<h2>6. XSS basé sur le DOM</h2>
+<p>Ouvrez la page « Aperçu » et ajoutez un fragment à l'adresse, en encodant les caractères spéciaux si le navigateur l'exige. Le JavaScript lit <code>window.location.hash</code> dans <code>script.js</code>. La version vulnérable écrit la valeur dans <code>innerHTML</code>; la version corrigée écrit le texte dans <code>textContent</code>.</p>
+<h3>Essai et résultat</h3><ol><li>Dans la barre d'adresse, ajoutez <code>#</code> puis l'exemple de test après l'adresse de la page Aperçu.</li><li>La version vulnérable interprète le balisage; la version corrigée affiche les caractères sans créer d'image.</li></ol>
+<p>Dans ce scénario, la valeur est traitée dans le navigateur. PHP ne la reçoit pas dans la requête HTTP, car le fragment n'est pas envoyé au serveur.</p>
+<h2>7. Résumé des corrections</h2>
+<ul><li>Pour du texte dans une page HTML : <code>htmlspecialchars($valeur, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')</code>.</li><li>Pour afficher du texte avec JavaScript : <code>element.textContent = valeur</code>.</li><li>Conserver les requêtes PDO préparées pour les valeurs SQL.</li><li>Valider aussi les longueurs et les identifiants, sans confondre validation et encodage de sortie.</li><li>Ne jamais déployer les fichiers de la version vulnérable.</li></ul>
+<p class="footer">CampusConnect · Guide de travail hors site, séparé des pages de l'application.</p>
+</main></body></html>
